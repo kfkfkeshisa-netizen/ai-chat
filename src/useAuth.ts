@@ -1,20 +1,18 @@
 import { useEffect, useState } from "react";
 import {
-  GoogleAuthProvider,
   User,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db, isFirebaseConfigured } from "./firebase";
+import { auth, isFirebaseConfigured } from "./firebase";
 
 type AuthState = {
   user: User | null;
   isLoading: boolean;
   error: string | null;
   isConfigured: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -32,15 +30,7 @@ export function useAuth(): AuthState {
     const currentAuth = auth;
     return onAuthStateChanged(
       currentAuth,
-      async (nextUser) => {
-        if (nextUser && !(await isAllowedUser(nextUser))) {
-          setUser(null);
-          setError("このGoogleアカウントはこのアプリの利用を許可されていません。");
-          await firebaseSignOut(currentAuth);
-          setIsLoading(false);
-          return;
-        }
-
+      (nextUser) => {
         setUser(nextUser);
         setIsLoading(false);
       },
@@ -51,21 +41,14 @@ export function useAuth(): AuthState {
     );
   }, []);
 
-  async function signInWithGoogle() {
+  async function signInWithEmail(email: string, password: string) {
     if (!auth) {
       setError("Firebase設定が未完了です。");
       return;
     }
 
     setError(null);
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-
-    if (!(await isAllowedUser(result.user))) {
-      await firebaseSignOut(auth);
-      setUser(null);
-      setError("このGoogleアカウントはこのアプリの利用を許可されていません。");
-    }
+    await signInWithEmailAndPassword(auth, email, password);
   }
 
   async function signOut() {
@@ -81,20 +64,7 @@ export function useAuth(): AuthState {
     isLoading,
     error,
     isConfigured: isFirebaseConfigured,
-    signInWithGoogle,
+    signInWithEmail,
     signOut,
   };
-}
-
-async function isAllowedUser(user: User): Promise<boolean> {
-  if (!db) {
-    return false;
-  }
-
-  try {
-    await getDoc(doc(db, "accessChecks", user.uid));
-    return true;
-  } catch {
-    return false;
-  }
 }

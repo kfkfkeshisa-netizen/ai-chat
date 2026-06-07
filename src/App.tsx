@@ -45,7 +45,7 @@ type Status = {
 const CONNECTION_TEST_PROMPT = "日本語で一文だけ、API疎通確認が成功したことを返してください。";
 
 export function App() {
-  const { user, isLoading, error, isConfigured, signInWithGoogle, signOut } = useAuth();
+  const { user, isLoading, error, isConfigured, signInWithEmail, signOut } = useAuth();
 
   if (!isConfigured) {
     return <FirebaseSetup />;
@@ -56,7 +56,7 @@ export function App() {
   }
 
   if (!user) {
-    return <LoginScreen error={error} onSignIn={signInWithGoogle} />;
+    return <LoginScreen error={error} onSignIn={signInWithEmail} />;
   }
 
   return <ApiProbe user={user} authError={error} onSignOut={signOut} />;
@@ -403,7 +403,7 @@ function ApiProbe({ user, authError, onSignOut }: ApiProbeProps) {
                 <section className="settings-block account-block">
                   <div>
                     <h2>アカウント</h2>
-                    <p>{user.displayName ?? user.email ?? "Googleユーザー"}</p>
+                    <p>{user.email ?? "メールユーザー"}</p>
                   </div>
                   <button type="button" className="icon-button secondary" onClick={() => void onSignOut()} title="ログアウト">
                     <LogOut size={18} aria-hidden="true" />
@@ -551,7 +551,7 @@ function FirebaseSetup() {
             <h1>Firebase設定が未完了です</h1>
             <p>
               `.env.example` を参考に `.env.local` を作成し、Firebase Webアプリの設定値を入力してください。
-              入力後に開発サーバーを再起動すると Googleログインを使えます。
+              入力後に開発サーバーを再起動するとメールログインを使えます。
             </p>
             <pre>{`VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
@@ -580,16 +580,25 @@ function LoadingScreen() {
   );
 }
 
-function LoginScreen({ error, onSignIn }: { error: string | null; onSignIn: () => Promise<void> }) {
+function LoginScreen({
+  error,
+  onSignIn,
+}: {
+  error: string | null;
+  onSignIn: (email: string, password: string) => Promise<void>;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  async function handleSignIn() {
+  async function handleSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setIsSigningIn(true);
     setLocalError(null);
 
     try {
-      await onSignIn();
+      await onSignIn(email.trim(), password);
     } catch (signInError) {
       setLocalError(signInError instanceof Error ? signInError.message : "ログインに失敗しました。");
     } finally {
@@ -602,12 +611,32 @@ function LoginScreen({ error, onSignIn }: { error: string | null; onSignIn: () =
       <section className="workspace narrow">
         <section className="login-panel">
           <p className="eyebrow">AI Chat</p>
-          <h1>Googleログイン</h1>
-          <p>認証済みユーザーのみAPI疎通確認画面を利用できます。</p>
-          <button type="button" onClick={() => void handleSignIn()} disabled={isSigningIn}>
-            {isSigningIn ? <Loader2 className="spin" size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
-            Googleでログイン
-          </button>
+          <h1>メールログイン</h1>
+          <p>Firebase Console で作成済みのユーザーのみ利用できます。</p>
+          <form onSubmit={handleSignIn}>
+            <label htmlFor="login-email">メールアドレス</label>
+            <input
+              id="login-email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+            <label htmlFor="login-password">パスワード</label>
+            <input
+              id="login-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+            <button type="submit" disabled={isSigningIn}>
+              {isSigningIn ? <Loader2 className="spin" size={18} aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
+              ログイン
+            </button>
+          </form>
           {error || localError ? <div className="status error">{error ?? localError}</div> : null}
         </section>
       </section>

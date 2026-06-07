@@ -12,11 +12,13 @@
 
 ## 2. 認証
 - Firebase Authentication を使用する。
-- ログイン方式は Google ログインのみとする。
+- ログイン方式はメールアドレス・パスワード認証とする。
 - 未認証ユーザーにはログイン画面のみ表示する。
 - ログイン後にメインチャット画面を表示する。
-- 利用可能なGoogleアカウントは、Firestore Rules に設定した Firebase Auth UID に限定する。
-- 許可されていないGoogleアカウントでログインした場合は、アプリ利用を拒否してサインアウトする。
+- アプリ内に新規登録画面は設けない。
+- 利用可能なユーザーは、Firebase Console の Authentication で管理者が作成したメールユーザーとする。
+- ユーザー追加・削除・無効化は Firebase Console の Authentication で行い、ソースコードの変更は不要とする。
+- Firebase Console 側では、初期版で使用しない Google ログインプロバイダを無効化する。
 - Firebase Console 側で、利用するローカル開発ドメインや Hosting ドメインを承認済みドメインに登録する。
 
 ## 3. APIキー管理
@@ -70,7 +72,7 @@
 
 ## 7. Firebase / Firestore 制約
 - Firestore Security Rules では、認証済みユーザーが自分の `users/{uid}` 配下のみ読み書きできるようにする。
-- 初期版では個人利用前提のため、許可した Firebase Auth UID のみ Firestore を利用できるようにする。
+- 初期版では個人利用前提のため、Firebase Authentication で認証済みのユーザーのみ Firestore を利用できるようにする。
 - `users/{uid}` 親ドキュメントへの直接書き込みは許可しない。
 - 初期版では、セッション・メッセージの詳細なフィールド検証よりも、所有者制限と安定動作を優先する。
 - 詳細なフィールド検証は、初期版の動作が安定した後の強化項目とする。
@@ -90,7 +92,7 @@
 ## 9. 現在の実装済み範囲
 - React + Vite + TypeScript のアプリ基盤。
 - Firebase Web 設定の `.env.local` 読み込み。
-- Google ログイン。
+- メールアドレス・パスワードログイン。
 - OpenAI APIキーの IndexedDB 保存、削除、読み込み。
 - OpenAI Responses API へのブラウザ直接呼び出し。
 - 接続テスト。
