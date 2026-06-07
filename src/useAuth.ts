@@ -6,12 +6,8 @@ import {
   signInWithPopup,
   signOut as firebaseSignOut,
 } from "firebase/auth";
-import { auth, isFirebaseConfigured } from "./firebase";
-
-const allowedEmails = String(import.meta.env.VITE_ALLOWED_EMAILS ?? "")
-  .split(",")
-  .map((email: string) => email.trim().toLowerCase())
-  .filter(Boolean);
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db, isFirebaseConfigured } from "./firebase";
 
 type AuthState = {
   user: User | null;
@@ -37,7 +33,7 @@ export function useAuth(): AuthState {
     return onAuthStateChanged(
       currentAuth,
       async (nextUser) => {
-        if (nextUser && !isAllowedUser(nextUser)) {
+        if (nextUser && !(await isAllowedUser(nextUser))) {
           setUser(null);
           setError("このGoogleアカウントはこのアプリの利用を許可されていません。");
           await firebaseSignOut(currentAuth);
@@ -65,7 +61,7 @@ export function useAuth(): AuthState {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
 
-    if (!isAllowedUser(result.user)) {
+    if (!(await isAllowedUser(result.user))) {
       await firebaseSignOut(auth);
       setUser(null);
       setError("このGoogleアカウントはこのアプリの利用を許可されていません。");
@@ -90,12 +86,15 @@ export function useAuth(): AuthState {
   };
 }
 
-function isAllowedUser(user: User): boolean {
-  const email = user.email?.toLowerCase();
-
-  if (!email) {
+async function isAllowedUser(user: User): Promise<boolean> {
+  if (!db) {
     return false;
   }
 
-  return allowedEmails.includes(email);
+  try {
+    await getDoc(doc(db, "accessChecks", user.uid));
+    return true;
+  } catch {
+    return false;
+  }
 }

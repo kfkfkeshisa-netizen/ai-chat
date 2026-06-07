@@ -2,8 +2,18 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAllowedUid() {
+      return request.auth != null
+        && request.auth.uid == "RxZYDVCtlGMPC9Q0g76e6mARgaH3";
+    }
+
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isAllowedUid() && request.auth.uid == userId;
+    }
+
+    match /accessChecks/{userId} {
+      allow get: if isOwner(userId);
+      allow list, create, update, delete: if false;
     }
 
     match /users/{userId} {

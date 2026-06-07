@@ -36,10 +36,7 @@ VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
 VITE_FIREBASE_PROJECT_ID=...
 VITE_FIREBASE_APP_ID=...
-VITE_ALLOWED_EMAILS=your-account@example.com
 ```
-
-`VITE_ALLOWED_EMAILS` はカンマ区切りで複数指定できます。
 
 開発サーバーを起動します。
 
@@ -50,8 +47,10 @@ npm run dev
 ## 注意
 
 - `.env.local` は Git 管理しません。
+- `.env.local` の実ファイルは Firebase Hosting にもアップロードしません。ただし、`VITE_FIREBASE_*` の値はブラウザで Firebase に接続するため、ビルド後の JavaScript から参照できる前提です。
+- Firebase Web設定の `apiKey` は OpenAI APIキーのような秘密鍵ではありません。アクセス制御は Firebase Authentication と Firestore Rules で行います。
 - OpenAI APIキーは Firestore や GitHub には保存しません。
-- `VITE_ALLOWED_EMAILS` に含まれない Google アカウントは、ログインしてもアプリ利用を拒否します。
+- 許可された Firebase Auth UID 以外の Google アカウントは、ログインしてもアプリ利用を拒否します。
 - 初期版では Firebase Spark プラン前提のため、Cloud Functions は使用しません。
 - OpenAI API はユーザーのブラウザから直接呼び出します。
 
